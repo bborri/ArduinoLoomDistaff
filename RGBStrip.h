@@ -4,6 +4,17 @@
 
 static const uint16_t LedCount = 60u;
 
+#define Max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define Min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+
 class RGBStrip
 {
 public:
@@ -37,29 +48,51 @@ public:
 
   void wave(uint32_t color, uint32_t fullDurationMs)
   {
+    const auto constexpr KernelSize = 11;
+    const float Kernel[KernelSize] = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f, 0.0f };
+
     m_strip.clear();
     // Increase wave
-    for (auto i = 0u; i < m_strip.numPixels(); ++i) // For each pixel in strip...
+    for (auto i = 0u; i < m_strip.numPixels() + KernelSize; ++i) // For each pixel in strip...
     {
-      m_strip.setPixelColor(i, color);
+      brightnessGradient<KernelSize>(color, Kernel, (int)i - KernelSize, i + 1);
       m_strip.show();
-      delay(fullDurationMs / (2*m_strip.numPixels()));
+      delay(fullDurationMs / (2 * m_strip.numPixels()));
     }
     // Decrease wave
-    for (auto i = m_strip.numPixels() - 1; i > 1; --i) // For each pixel in strip...
+    for (auto i = m_strip.numPixels() + KernelSize - 1; i > 1; --i) // For each pixel in strip...
     {
-      clearPixel(i);
+      brightnessGradient<KernelSize>(color, Kernel, (int)i - KernelSize, i + 1);
       m_strip.show();
-      delay(fullDurationMs / (2*m_strip.numPixels()));
+      delay(fullDurationMs / (2 * m_strip.numPixels()));
     }
     clear();
   }
 
-  void colorOnRange(uint32_t color, uint16_t rangeStart = 0, uint16_t rangeCount = LedCount)
+  template<int KernelSize>
+  void brightnessGradient(uint32_t color, const float kernel[KernelSize], int16_t rangeStart = 0, uint16_t rangeCount = LedCount)
   {
-    for (auto i = rangeStart; i < m_strip.numPixels() && i < rangeCount; ++i) // For each pixel in strip...
+    for (auto i = rangeStart; i < int(m_strip.numPixels()) && i < int(rangeCount); ++i)
     {
-      m_strip.setPixelColor(i, color);         //  Set pixel's color (in RAM)
+      if (i >= 0)
+      {
+        auto brightnessRatio = kernel[Max(0, Min(i - rangeStart, KernelSize - 1))];
+        Serial.print(i);
+        Serial.print(", ");
+        Serial.println(brightnessRatio);
+        m_strip.setPixelColor(i, setColorBrightness(color, brightnessRatio));
+      }
+    }
+    m_strip.show();
+    Serial.println();
+  }
+
+  void colorOnRange(uint32_t color, int16_t rangeStart = 0, uint16_t rangeCount = LedCount)
+  {
+    for (auto i = rangeStart; i < int(m_strip.numPixels()) && i < int(rangeCount); ++i)
+    {
+      if (i >= 0)
+        m_strip.setPixelColor(i, color);
     }
     m_strip.show();
   }
@@ -69,7 +102,7 @@ public:
     for (auto i = 0u; i < m_strip.numPixels(); ++i) // For each pixel in strip...
     {
       uint8_t brightness = random(50) + 150;
-      m_strip.setPixelColor(i, red(color) * brightness / 255, green(color) * brightness / 255, blue(color) * brightness / 255);
+      m_strip.setPixelColor(i, setColorBrightness(color, brightness));
     }
     m_strip.show();
   }
@@ -166,17 +199,27 @@ void theaterChaseRainbow(int wait)
 private:
   uint8_t red(uint32_t color)
   {
-    return (uint8_t)((color >> 16) & 0xff);
+    return uint8_t((color >> 16) & 0xff);
   }
 
   uint8_t green(uint32_t color)
   {
-    return (uint8_t)((color >> 8) & 0xff);
+    return uint8_t((color >> 8) & 0xff);
   }
 
   uint8_t blue(uint32_t color)
   {
-    return (uint8_t)(color & 0xff);
+    return uint8_t(color & 0xff);
+  }
+
+  uint32_t setColorBrightness(uint32_t color, uint8_t brightness)
+  {
+    return Adafruit_NeoPixel::Color(red(color) * brightness / 255, green(color) * brightness / 255, blue(color) * brightness / 255);
+  }
+
+  uint32_t setColorBrightness(uint32_t color, float ratio)
+  {
+    return Adafruit_NeoPixel::Color(uint8_t(red(color) * ratio), uint8_t(green(color) * ratio), uint8_t(blue(color) * ratio));
   }
 
   void clearPixel(uint16_t index)
