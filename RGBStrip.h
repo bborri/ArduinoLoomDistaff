@@ -77,14 +77,10 @@ public:
       if (i >= 0)
       {
         auto brightnessRatio = kernel[Max(0, Min(i - rangeStart, KernelSize - 1))];
-        Serial.print(i);
-        Serial.print(", ");
-        Serial.println(brightnessRatio);
         m_strip.setPixelColor(i, setColorBrightness(color, brightnessRatio));
       }
     }
     m_strip.show();
-    Serial.println();
   }
 
   void colorOnRange(uint32_t color, int16_t rangeStart = 0, uint16_t rangeCount = LedCount)
