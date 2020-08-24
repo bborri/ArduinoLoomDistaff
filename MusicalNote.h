@@ -2,31 +2,40 @@
 
 #include <Adafruit_NeoPixel.h>
 
+#define MinOctave 2
+#define MaxOctave 4
+#define MaxIndex 11
+#define MaxAccumulation 5
+
 
 class Note
 {
 public:
-  static const uint8_t MaxOctave = 8;
-  static const uint8_t MaxIndex = 11;
-  static const uint8_t MaxAccumulation = 25;
-
-public:
   Note():
     m_octave(0),
     m_index(0),
-    m_accumulation(0)
+    m_accumulation(0),
+    m_nextOctave(0),
+    m_nextIndex(0),
+    m_nextAccumulation(0)
   {}
 
   Note(uint8_t index, uint8_t octave):
     m_octave(octave),
     m_index(index),
-    m_accumulation(3)
+    m_accumulation(3),
+    m_nextOctave(0),
+    m_nextIndex(0),
+    m_nextAccumulation(0)
   {}
 
   Note(float frequency):
     m_octave(0),
     m_index(0),
-    m_accumulation(0)
+    m_accumulation(0),
+    m_nextOctave(0),
+    m_nextIndex(0),
+    m_nextAccumulation(0)
   {
     setFrequency(frequency);
   }
@@ -36,15 +45,15 @@ public:
     // Find octave range based on the guess
     int multiplier = 1;
     uint8_t newOctave = 0;
-    while (newOctave <= MaxOctave && !(frequency >= Frequencies[0] * multiplier - 7 && frequency <= Frequencies[11] * multiplier + 7))
+    while (newOctave <= MaxOctave && (frequency < Frequencies[0] * multiplier - 7 || frequency > Frequencies[11] * multiplier + 7))
     {
       ++newOctave;
       multiplier *= 2;
     }
 
-    if (newOctave > MaxOctave)
+    if (newOctave < MinOctave || newOctave > MaxOctave)
     {
-      Serial.print("Warning: This note is too high for me :-(");
+      decrement();
       return;
     }
 
@@ -62,29 +71,39 @@ public:
 
     if (newOctave == m_octave && newIndex == m_index)
     {
-      if (m_accumulation + 5 <= MaxAccumulation)
-        m_accumulation += 5;
+      if (m_accumulation + 3 <= MaxAccumulation)
+        m_accumulation += 3;
       else
         m_accumulation = MaxAccumulation;
     }
-    else if (m_accumulation > 0)
-      --m_accumulation;
     else
     {
-      m_octave = newOctave;
-      m_index = newIndex;
-      m_accumulation = 1;
+      decrement();
+      if (newOctave == m_nextOctave && newIndex == m_nextIndex)
+        ++m_nextAccumulation;
+      else
+      {
+        m_nextOctave = newOctave;
+        m_nextIndex = newIndex;
+        m_nextAccumulation = 0;
+      }
+      if (m_nextAccumulation > m_accumulation)
+      {
+        m_octave = newOctave;
+        m_index = newIndex;
+        m_accumulation = 1;
+      }
     }
 
     //Print the note
-    Serial.print("I think you played ");
+    //Serial.print("I think you played ");
     Serial.print(Names[newIndex]);
-    Serial.print(newOctave);
-    Serial.print(", accumulated ");
-    Serial.print(m_accumulation);
-    Serial.print(" on ");
-    Serial.print(name());
-    Serial.println(m_octave);
+    Serial.println(newOctave);
+    //Serial.print(", accumulated ");
+    //Serial.print(m_accumulation);
+    //Serial.print(" on ");
+    //Serial.print(name());
+    //Serial.println(m_octave);
   }
 
   void decrement()
@@ -95,7 +114,7 @@ public:
 
   bool active() const
   {
-    return m_accumulation > 5;
+    return m_accumulation > 3;
   }
 
   // Get English note name (with optional #)
@@ -136,4 +155,7 @@ private:
     uint8_t m_octave;
     uint8_t m_index;
     uint8_t m_accumulation;
+    uint8_t m_nextOctave;
+    uint8_t m_nextIndex;
+    uint8_t m_nextAccumulation;
 };

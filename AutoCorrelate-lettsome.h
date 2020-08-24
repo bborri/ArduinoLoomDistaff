@@ -72,10 +72,10 @@ public:
       long sum = 0;
       for (auto k = 0u; k < SAMPLES - i; k++) //Match signal with delayed signal
       {
-        sum = sum + (((m_samples[k]) - offset) * ((m_samples[k + i]) - offset)); // m_samples[k] is the signal and m_samples[k+i] is the delayed version
+        sum = sum + ((m_samples[k] - offset) * (m_samples[k + i] - offset)); // m_samples[k] is the signal and m_samples[k+i] is the delayed version
       }
       autoCorr[i] = sum / SAMPLES;
-  
+
       // First Peak Detect State Machine
       if (state_machine==0 && i == 0)
       {
@@ -86,12 +86,12 @@ public:
       {
         maxValue = autoCorr[i];
       }
-      else if (state_machine == 1&& i>0 && thresh < autoCorr[i-1] && maxValue == autoCorr[i-1] && (autoCorr[i]-autoCorr[i-1])<=0)
+      else if (state_machine == 1 && i>0 && thresh < autoCorr[i-1] && maxValue == autoCorr[i-1] && (autoCorr[i]-autoCorr[i-1])<=0)
       {
         periodBegin = i - 1;
         state_machine = 2;
         numOfCycles = 1;
-        samplesPerPeriod = (periodBegin - 0);
+        samplesPerPeriod = max(periodBegin, 1);
         adjuster = TUNER + (50.04 * exp(-0.102 * samplesPerPeriod));
         signalFrequency = ((SAMPLING_FREQUENCY) / (samplesPerPeriod))-adjuster; // f = fs/N
       }
@@ -99,12 +99,12 @@ public:
       {
         maxValue = autoCorr[i];
       }
-      else if (state_machine == 2&& i>0 && thresh < autoCorr[i-1] && maxValue == autoCorr[i-1] && (autoCorr[i]-autoCorr[i-1])<=0)
+      else if (state_machine == 2 && i>0 && thresh < autoCorr[i-1] && maxValue == autoCorr[i-1] && (autoCorr[i]-autoCorr[i-1])<=0)
       {
         periodEnd = i-1;
         state_machine = 3;
         numOfCycles = 2;
-        samplesPerPeriod = (periodEnd - 0);
+        samplesPerPeriod = max(periodEnd, 1);
         signalFrequency2 = ((numOfCycles*SAMPLING_FREQUENCY) / (samplesPerPeriod))-adjuster; // f = (2*fs)/(2*N)
         maxValue = 0;
       }
@@ -112,12 +112,12 @@ public:
       {
         maxValue = autoCorr[i]; 
       }
-      else if (state_machine == 3&& i>0 && thresh < autoCorr[i-1] && maxValue == autoCorr[i-1] && (autoCorr[i]-autoCorr[i-1])<=0)
+      else if (state_machine == 3 && i>0 && thresh < autoCorr[i-1] && maxValue == autoCorr[i-1] && (autoCorr[i]-autoCorr[i-1])<=0)
       {
         periodEnd = i-1;
         state_machine = 4;
         numOfCycles = 3;
-        samplesPerPeriod = (periodEnd - 0);
+        samplesPerPeriod = max(periodEnd, 1);
         signalFrequency3 = ((numOfCycles*SAMPLING_FREQUENCY) / (samplesPerPeriod))-adjuster; // f = (3*fs)/(3*N)
       }
     }
@@ -129,24 +129,27 @@ public:
     { 
       //prepare the weighting function
       float total = 0.0f;
-      if (signalFrequency != 0)
+      if (signalFrequency > 0)
       {
         total = 1.0f;
       }
-      if (signalFrequency2 != 0)
+      if (signalFrequency2 > 0)
       {
-        total = total + 2.0f;
+        total += 2.0f;
       }
-      if (signalFrequency3 != 0)
+      if (signalFrequency3 > 0)
       {
-        total = total + 3.0f;
+        total += 3.0f;
       }
-  
+
+      if (total <= 0.0f)
+        return 0;
+
       //calculate the frequency using the weighting function
       const float signalFrequencyGuess = ((1/total) * signalFrequency) + ((2/total) * signalFrequency2) + ((3/total) * signalFrequency3); //find a weighted frequency
-      Serial.print("The note you played is approximately ");
-      Serial.print(signalFrequencyGuess);     //Print the frequency guess.
-      Serial.println(" Hz.");
+      //Serial.print("The note you played is approximately ");
+      Serial.println(signalFrequencyGuess);     //Print the frequency guess.
+      //Serial.println(" Hz.");
       return signalFrequencyGuess;
     }
 
