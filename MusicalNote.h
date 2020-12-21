@@ -1,14 +1,33 @@
 #pragma once
 
 #include <Adafruit_NeoPixel.h>
+#include "util.h"
+
+#define MaxOctave uint8_t(8)
+#define MaxIndex uint8_t(11)
+#define MaxAccumulation uint8_t(25)
+
+
+// Note names
+static const constexpr char* const Names[12] PROGMEM = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+
+// Note frequencies
+static const constexpr float Frequencies[12] PROGMEM = {16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87};
+
+// Note colors
+ static const constexpr uint8_t Colors[12*3] PROGMEM = {
+    /*C*/ 255, 0, 0, /*C#*/ 225, 85, 85,
+    /*D*/ 255, 120, 0, /*D#*/ 255, 192, 0,
+    /*E*/ 255, 255, 0,
+    /*F*/ 0, 178, 0, /*F#*/ 37, 214, 0,
+    /*G*/ 0, 255, 156, /*G#*/ 37, 214, 218,
+    /*A*/ 0, 145, 181, /*A#*/ 0, 72, 181,
+    /*B*/ 0, 0, 181 };
 
 
 class Note
 {
 public:
-  static const uint8_t MaxOctave = 8;
-  static const uint8_t MaxIndex = 11;
-  static const uint8_t MaxAccumulation = 25;
 
 public:
   Note():
@@ -33,10 +52,13 @@ public:
 
   void setFrequency(float frequency)
   {
+    SerialPrintStr("Detecting note for frequency ");
+    Serial.println(frequency);
+    
     // Find octave range based on the guess
     int multiplier = 1;
     uint8_t newOctave = 0;
-    while (newOctave <= MaxOctave && !(frequency >= Frequencies[0] * multiplier - 7 && frequency <= Frequencies[11] * multiplier + 7))
+    while (newOctave <= MaxOctave && !(frequency >= Frequency(0) * multiplier - 7 && frequency <= Frequency(11) * multiplier + 7))
     {
       ++newOctave;
       multiplier *= 2;
@@ -44,7 +66,7 @@ public:
 
     if (newOctave > MaxOctave)
     {
-      Serial.print("Warning: This note is too high for me :-(");
+      SerialPrintLnStr("Warning: This note is too high for me :-(");
       return;
     }
 
@@ -53,9 +75,9 @@ public:
     uint8_t newIndex = 0;
     for (auto i = 0u; i <= MaxIndex; ++i)
     {
-      if (minValue > fabs(frequency - Frequencies[i] * multiplier))
+      if (minValue > fabs(frequency - Frequency(i) * multiplier))
       {
-        minValue = fabs(frequency - Frequencies[i] * multiplier);
+        minValue = fabs(frequency - Frequency(i) * multiplier);
         newIndex = i;
       }
     }
@@ -77,12 +99,12 @@ public:
     }
 
     //Print the note
-    Serial.print("I think you played ");
-    Serial.print(Names[newIndex]);
+    SerialPrintStr("I think you played ");
+    Serial.print(Name(newIndex));
     Serial.print(newOctave);
-    Serial.print(", accumulated ");
+    SerialPrintStr(", accumulated ");
     Serial.print(m_accumulation);
-    Serial.print(" on ");
+    SerialPrintStr(" on ");
     Serial.print(name());
     Serial.println(m_octave);
   }
@@ -101,7 +123,12 @@ public:
   // Get English note name (with optional #)
   const char* name() const
   {
-    return Names[m_index];
+    return Name(m_index);
+  }
+
+  float frequency() const
+  {
+    return Frequency(m_index);
   }
 
   // Get octave number (0-8)
@@ -114,23 +141,25 @@ public:
   {
     if (m_index == 0 && m_octave == 4)
       return Adafruit_NeoPixel::Color(255, 255, 255);
-    return Colors[m_index];
+    return Color(m_index);
+    //return Colors[m_index];
   };
 
 private:
-  // Note names
-  const char* const Names[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-  // Note frequencies
-  const float Frequencies[12] = {16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87};
-  // Note colors
-  const uint32_t Colors[12] = {
-    Adafruit_NeoPixel::Color(255, 0, 0), Adafruit_NeoPixel::Color(225, 85, 85),
-    Adafruit_NeoPixel::Color(255, 120, 0), Adafruit_NeoPixel::Color(255, 192, 0),
-    Adafruit_NeoPixel::Color(255, 255, 0),
-    Adafruit_NeoPixel::Color(0, 178, 0), Adafruit_NeoPixel::Color(37, 214, 0),
-    Adafruit_NeoPixel::Color(0, 255, 156), Adafruit_NeoPixel::Color(37, 214, 218),
-    Adafruit_NeoPixel::Color(0, 145, 181), Adafruit_NeoPixel::Color(0, 72, 181),
-    Adafruit_NeoPixel::Color(0, 0, 181) };
+  static const char* Name(uint8_t index)
+  {
+    return pgm_read_byte_near(Names + index);
+  }
+
+  static float Frequency(uint8_t index)
+  {
+    return pgm_read_byte_near(Frequencies + index);
+  }
+
+  static uint32_t Color(uint8_t index)
+  {
+    return Adafruit_NeoPixel::Color(pgm_read_byte_near(Colors + 3*index), pgm_read_byte_near(Colors + 3*index + 1), pgm_read_byte_near(Colors + 3*index + 2));
+  }
 
 private:
     uint8_t m_octave;

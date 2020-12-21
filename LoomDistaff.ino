@@ -1,12 +1,16 @@
 
+#include "util.h"
 #include "RGBStrip.h"
 #include "MusicalNote.h"
 #include "Calibrator.h"
+//#include "SoundPlayer.h"
 #include "AutoCorrelate-lettsome.h"
 
-RGBStrip rgb;
+RGBStrip rgb(6);
 Note note;
 Calibrator calibrator;
+//SoundPlayer player;
+
 
 void setup()
 {
@@ -22,15 +26,16 @@ void setup()
   //Calibration Section
   //*****************************************************************
   calibrator.calibrate();
+  Serial.println(calibrator.offset());
 
   // Init LED strip
-  rgb.init();
+//  rgb.init();
 }
-
+/*
 void playNote(const Note& note)
 {
   // Play the proper sound
-  // TODO
+  player.playLoomNote(note.name());
 
   // Light the LEDs with the proper color
   rgb.shimmerAroundColor(note.color());
@@ -39,29 +44,42 @@ void playNote(const Note& note)
 void stopPlaying()
 {
   // Stop playing sound
-  // TODO
+  player.stop();
   
   // Turn off the lights
   rgb.clear();
 }
-
+*/
 void loop()
 {
+  //rgb.wave(Adafruit_NeoPixel::Color(0, 150, 255), 10000);
+
   AutoCorrelate autoCorrelate;
 
   // Read from pin 0
   autoCorrelate.readData(0);
 
   float signalFrequencyGuess = autoCorrelate.correlate(calibrator.offset());
+  SerialPrintStr("Frequency ");
+  Serial.println(signalFrequencyGuess);
   if (signalFrequencyGuess > 0)
   {
     note.setFrequency(signalFrequencyGuess);
   }
   else
     note.decrement();
-
+/*
   if (note.active())
     playNote(note);
   else
     stopPlaying();
+*/
+/*    player.playLoomNote("C");
+    player.playLoomNote("D");
+    player.playLoomNote("E");
+    player.playLoomNote("F");
+    player.playLoomNote("G");
+    player.playLoomNote("A");
+    player.playLoomNote("B");
+    player.playLoomNote("CC");*/
 }

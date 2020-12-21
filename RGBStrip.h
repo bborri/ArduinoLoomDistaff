@@ -19,7 +19,7 @@ class RGBStrip
 {
 public:
   // Pin 0 by default
-  RGBStrip(uint16_t controlPin = 6): m_strip(LedCount, controlPin, NEO_GRB + NEO_KHZ800)
+  RGBStrip(uint16_t controlPin): m_strip(LedCount, controlPin, NEO_GRB + NEO_KHZ800)
   {}
 
   void init()

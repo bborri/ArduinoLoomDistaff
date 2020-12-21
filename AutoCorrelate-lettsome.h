@@ -22,8 +22,10 @@
 
 #pragma once
 
+#include "util.h"
+
 #define TUNER 0    //Adjust until C3 is 130.50
-#define SAMPLES 200             //Max 128 for Arduino Uno.
+#define SAMPLES 128             //Max 128 for Arduino Uno.
 #define SAMPLING_FREQUENCY 9615 //Fs = Based on Nyquist, must be 2 times the highest expected frequency.
 #define SAMPLING_PERIOD (1.0 / SAMPLING_FREQUENCY) //Period in microseconds
 
@@ -52,6 +54,14 @@ public:
     }
   }
 
+  // Apply a Hann window to the signal. Array must be SAMPLES long
+  template<class T>
+  void window(T* array)
+  {
+    for (uint8_t i = 0; i < SAMPLES; ++i)
+      array[i] = 0.5 * (1 - cos(6.283 * array[i] / SAMPLES));
+  }
+
   float correlate(int offset) const
   {
     float signalFrequency = 0;
@@ -69,6 +79,8 @@ public:
 
     for (auto i = 0u; i < SAMPLES; i++) //i=delay
     {
+      //Serial.print(m_samples[i] - offset);
+      //Serial.print(", ");
       long sum = 0;
       for (auto k = 0u; k < SAMPLES - i; k++) //Match signal with delayed signal
       {
@@ -122,6 +134,8 @@ public:
       }
     }
 
+    SerialPrintLnStr("Result analysis");
+
     //*****************************************************************
     //Result Analysis
     //*****************************************************************
@@ -144,9 +158,9 @@ public:
   
       //calculate the frequency using the weighting function
       const float signalFrequencyGuess = ((1/total) * signalFrequency) + ((2/total) * signalFrequency2) + ((3/total) * signalFrequency3); //find a weighted frequency
-      Serial.print("The note you played is approximately ");
+      SerialPrintStr("Detected frequency ");
       Serial.print(signalFrequencyGuess);     //Print the frequency guess.
-      Serial.println(" Hz.");
+      SerialPrintLnStr(" Hz.");
       return signalFrequencyGuess;
     }
 
