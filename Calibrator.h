@@ -12,7 +12,7 @@ public:
 
   void calibrate()
   {
-    SerialPrintLnStr("### Calibrating. Keep silent !");
+    SerialPrintStr("Keep silent! Calibrating...");
     uint32_t sumOffset = 0;
     uint16_t offset[OFFSETSAMPLES]; //create offset vector
     for (uint8_t i = 0u; i < OFFSETSAMPLES; ++i)
@@ -22,6 +22,7 @@ public:
       sumOffset += offset[i];
     }
     m_avgOffset = sumOffset / OFFSETSAMPLES;
+    SerialPrintLnStr("Done");
   }
 
   uint8_t offset() const { return m_avgOffset; }

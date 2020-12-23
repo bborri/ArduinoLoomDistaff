@@ -11,18 +11,25 @@ Optionally, it could also:
 - detect a 4-note draft and play the "successful casting" sound
 
 ## Targeted hardware
-- Arduino Nano
+- Arduino Uno
 - Amplified Microphone
 - RGB LED strip
 - Arduino Wave Shield
+- Speaker
 
 ## How to
 - Install and run the Arduino IDE
 - Install Adafruit_NeoPixel plugin
-- Prepare your circuit and plug your Arduino Nano using USB
+- Install WaveHC plugin
+- Prepare your circuit and plug your Arduino Uno using USB
 - Compile and upload the code
 
+## Circuit schema
+- Plug your Wave Shield on top of your Arduino Uno
+- Plug the microphone on analog pin 0
+- Plug RGB LED strip to digital pin 6
+- Properly plug the 5V and Ground on the microphone and LED strip
+- Add the speaker to the Wave Shield to hear audio
 
 ## To do
-- Sound playing is not written yet
-- Pitch detection must be improved
+- Stabilize pitch detection

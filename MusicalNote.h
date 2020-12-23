@@ -4,7 +4,7 @@
 #include "util.h"
 
 #define MinOctave 2
-#define MaxOctave 4
+#define MaxOctave 5
 #define MaxIndex 11
 #define MaxAccumulation 5
 
@@ -14,6 +14,9 @@ static const constexpr char* const Names[12] PROGMEM = {"C", "C#", "D", "D#", "E
 
 // Note frequencies
 static const constexpr float Frequencies[12] PROGMEM = {16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87};
+
+// Note max frequencies
+static const constexpr float MaxFrequencies[12] PROGMEM = {16.831, 17.832, 18.892, 20.015, 21.205, 22.466, 23.802, 25.218, 26.717, 28.306, 29.989, 31.772};
 
 // Note colors
  static const constexpr uint8_t Colors[12*3] PROGMEM = {
@@ -60,47 +63,46 @@ public:
 
   void setFrequency(float frequency)
   {
-    SerialPrintStr("Detecting note for frequency ");
+    //SerialPrintStr("Detecting note for frequency ");
     Serial.println(frequency);
     
     // Find octave range based on the guess
-    int multiplier = 1;
     uint8_t newOctave = 0;
-    while (newOctave <= MaxOctave && (frequency < Frequencies[0] * multiplier - 7 || frequency > Frequencies[11] * multiplier + 7))
+    auto freq0 = frequency;
+    while (newOctave <= MaxOctave && freq0 > MaxFrequency(MaxIndex))
     {
       ++newOctave;
-      multiplier *= 2;
+      freq0 /= 2;
     }
 
-    if (newOctave < MinOctave || newOctave > MaxOctave)
+    if (newOctave < MinOctave/* || newOctave > MaxOctave*/)
     {
       decrement();
       return;
     }
 
     // Find the closest note
-    auto minValue = 10000000;
     uint8_t newIndex = 0;
     for (auto i = 0u; i <= MaxIndex; ++i)
     {
-      if (minValue > fabs(frequency - Frequency(i) * multiplier))
+      if (freq0 < MaxFrequency(i))
       {
-        minValue = fabs(frequency - Frequency(i) * multiplier);
         newIndex = i;
+        break;
       }
     }
 
     if (newOctave == m_octave && newIndex == m_index)
     {
       if (m_accumulation + 3 <= MaxAccumulation)
-        m_accumulation += 3;
+        m_accumulation += 2;
       else
         m_accumulation = MaxAccumulation;
     }
     else
     {
       decrement();
-      if (newOctave == m_nextOctave && newIndex == m_nextIndex)
+      if (/*newOctave == m_nextOctave &&*/ newIndex == m_nextIndex)
         ++m_nextAccumulation;
       else
       {
@@ -117,14 +119,13 @@ public:
     }
 
     //Print the note
-    //SerialPrintStr("I think you played ");
     Serial.print(Name(newIndex));
-    Serial.print(newOctave);
-    //SerialPrintStr(", accumulated ");
-    //Serial.print(m_accumulation);
-    //SerialPrintStr(" on ");
-    //Serial.print(name());
-    //Serial.println(m_octave);
+    Serial.println(newOctave);
+    SerialPrintStr(", accumulated ");
+    Serial.print(m_accumulation);
+    SerialPrintStr(" on ");
+    Serial.print(name());
+    Serial.println(m_octave);
   }
 
   void decrement()
@@ -157,21 +158,25 @@ public:
 
   uint32_t color() const
   {
-    if (m_index == 0 && m_octave == 4)
+    if (m_index == 0 && m_octave >= 4) // Special case to handle high C (in white)
       return Adafruit_NeoPixel::Color(255, 255, 255);
     return Color(m_index);
-    //return Colors[m_index];
   };
 
 private:
   static const char* Name(uint8_t index)
   {
-    return pgm_read_byte_near(Names + index);
+    return pgm_read_word_near(Names + index);
   }
 
   static float Frequency(uint8_t index)
   {
-    return pgm_read_byte_near(Frequencies + index);
+    return pgm_read_float_near(Frequencies + index);
+  }
+
+  static float MaxFrequency(uint8_t index)
+  {
+    return pgm_read_float_near(MaxFrequencies + index);
   }
 
   static uint32_t Color(uint8_t index)

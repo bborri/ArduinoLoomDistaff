@@ -53,7 +53,7 @@ public:
       }
     }
   }
-
+/*
   // Apply a Hann window to the signal. Array must be SAMPLES long
   template<class T>
   void window(T* array)
@@ -61,9 +61,16 @@ public:
     for (uint8_t i = 0; i < SAMPLES; ++i)
       array[i] = 0.5 * (1 - cos(6.283 * array[i] / SAMPLES));
   }
-
-  float correlate(int offset) const
+*/
+  float correlate(int* samples, int offset)
   {
+      ::memcpy(m_samples, samples, sizeof(int)*SAMPLES);
+      return correlate(offset);
+  }
+
+  
+  float correlate(int offset) const
+  {   
     float signalFrequency = 0;
     float signalFrequency2 = 0;
     float signalFrequency3 = 0;
@@ -134,7 +141,7 @@ public:
       }
     }
 
-    SerialPrintLnStr("Result analysis");
+    //SerialPrintLnStr("Result analysis");
 
     //*****************************************************************
     //Result Analysis
@@ -161,9 +168,9 @@ public:
 
       //calculate the frequency using the weighting function
       const float signalFrequencyGuess = ((1/total) * signalFrequency) + ((2/total) * signalFrequency2) + ((3/total) * signalFrequency3); //find a weighted frequency
-      SerialPrintStr("Detected frequency ");
-      Serial.print(signalFrequencyGuess);     //Print the frequency guess.
-      SerialPrintLnStr(" Hz.");
+      //SerialPrintStr("Detected frequency ");
+      //Serial.print(signalFrequencyGuess);     //Print the frequency guess.
+      //SerialPrintLnStr(" Hz.");
       return signalFrequencyGuess;
     }
 

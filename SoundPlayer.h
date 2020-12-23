@@ -37,26 +37,26 @@ public:
     // if we ended up not finding one  :(
     if (part == 5)
     {
-      putstring_nl("No valid FAT partition!");
+      SerialPrintLnStr("No valid FAT partition!");
       sdErrorCheck();      // Something went wrong, let's print out why
       while(1);            // then 'halt' - do nothing!
     }
 
     // Let's tell the user about what we found
-    putstring("Using partition ");
-    Serial.print(part, DEC);
-    putstring(", type is FAT");
-    Serial.println(m_volume.fatType(), DEC);     // FAT16 or FAT32?
+    //SerialPrintStr("Using partition ");
+    //Serial.print(part, DEC);
+    //SerialPrintStr(", type is FAT");
+    //Serial.println(m_volume.fatType(), DEC);     // FAT16 or FAT32?
 
     // Try to open the root directory
     if (!m_root.openRoot(m_volume))
     {
-      putstring_nl("Can't open root dir!"); // Something went wrong,
+      SerialPrintLnStr("Can't open root dir!"); // Something went wrong,
       while(1);                             // then 'halt' - do nothing!
     }
   
     // Whew! We got past the tough parts.
-    //putstring_nl("Files found:");
+    SerialPrintLnStr("Files found:");
     // Print out all of the files in all the directories.
     //listDirectory(m_root);
   }
@@ -98,14 +98,14 @@ public:
     // look in the root directory and open the file
     if (!file.open(m_root, (char*)name))
     {
-      putstring("Couldn't open file ");
+      SerialPrintStr("Couldn't open file ");
       Serial.println(name);
       return;
     }
     // OK read the file and turn it into a wave object
     if (!m_wave.create(file))
     {
-      putstring_nl("Not a valid WAV");
+      SerialPrintLnStr("Not a valid WAV");
       return;
     }
       
@@ -157,10 +157,10 @@ private:
   {
     if (!m_card.errorCode())
       return true;
-    putstring_nl("SD error");
-    putstring("  errorCode: ");
+    SerialPrintLnStr("SD error");
+    SerialPrintStr("  errorCode: ");
     Serial.println(m_card.errorCode(), HEX);
-    putstring("  errorData: ");
+    SerialPrintStr("  errorData: ");
     Serial.println(m_card.errorData(), HEX);
     return false;
   }
